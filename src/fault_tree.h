@@ -98,7 +98,7 @@ class Component
   ///
   /// @param[out] gates  Gates belonging to this component
   ///                    and its subcomponents.
-  void GatherGates(std::unordered_set<Gate*>* gates);
+  void GatherGates(std::unordered_set<Gate*>* gates) const;
 
  private:
   /// @copydoc Component::Add(BasicEvent*)

@@ -42,9 +42,9 @@ void Component::Add(CcfGroup* ccf_group) {
   Composite::Add(ccf_group);
 }
 
-void Component::GatherGates(std::unordered_set<Gate*>* gates) {
+void Component::GatherGates(std::unordered_set<Gate*>* gates) const {
   gates->insert(data<Gate>().begin(), data<Gate>().end());
-  for (Component& component : table<Component>())
+  for (const Component& component : table<Component>())
     component.GatherGates(gates);
 }
 

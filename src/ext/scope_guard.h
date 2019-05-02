@@ -9,6 +9,8 @@
 
 #pragma once
 
+#if 0
+
 #include <exception>
 #include <functional>
 #include <tuple>
@@ -183,3 +185,24 @@ scope_guard_success(Params&&...)
   ext::scope_guard_success BOOST_PP_CAT(scope_success_, __LINE__)(fn)
 
 #endif  // DOXYGEN_SHOULD_SKIP_THIS
+
+#endif
+
+#include <iostream>
+#include <utility>
+
+template <typename T>
+struct scope_exit
+{
+    scope_exit(T &&t) : t_{ std::move(t) } {}
+    ~scope_exit() { t_(); }
+    T t_;
+};
+
+template <typename T>
+scope_exit<T> make_scope_exit(T &&t) {
+    return scope_exit<T>{
+        std::move(t)};
+}
+
+#define SCOPE_EXIT auto cleanup = make_scope_exit

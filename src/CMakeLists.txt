@@ -51,7 +51,7 @@ set(SCRAM_CORE_SRC
   risk_analysis.cc
   )
 ### End SCRAM core source list ### }}}
-add_library(scram SHARED ${SCRAM_CORE_SRC})
+add_library(scram STATIC ${SCRAM_CORE_SRC})
 target_link_libraries(scram ${LIBS})
 target_compile_options(scram PRIVATE $<$<CONFIG:DEBUG>:${SCRAM_CXX_FLAGS_DEBUG}>)
 

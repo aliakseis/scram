@@ -163,6 +163,8 @@ class Element : public ContainerElement, private boost::noncopyable {
   /// @returns The original name.
   const std::string& name() const { return name_; }
 
+  const std::string& key() const { return name(); }
+
   /// @returns The string view to the name for table keys.
   std::string_view name_view() const { return name_; }
 
@@ -320,6 +322,8 @@ class Id : public Element, public Role {
                                                   : full_path_;
   }
 
+  const std::string& key() const { return id(); }
+
   /// @returns The string view to the id to be used as a table key.
   std::string_view id_view() const { return id(); }
 
@@ -475,9 +479,8 @@ class Container {
       return **it;
 
     SCRAM_THROW(UndefinedElement())
-        << errinfo_element(std::string(id), T::kTypeString)
-        << errinfo_container(Id::unique_name(static_cast<const Self&>(*this)),
-                             Self::kTypeString);
+        << errinfo_element(std::string(id), T::kTypeString);
+        //<< errinfo_container(Id::unique_name(static_cast<const Self&>(*this)), Self::kTypeString);
   }
   T& Get(const key_type& id) {
     return const_cast<T&>(std::as_const(*this).Get(id));
@@ -490,15 +493,19 @@ class Container {
   /// @param[in] element  The pointer to the unique element.
   ///
   /// @throws DuplicateElementError  The element is already in the container.
-  void Add(Pointer element) {
+  template <typename S>
+  void Add(Pointer element, S* self) {
     T& stable_ref = *element;  // The pointer will be moved later.
     if (table_.insert(std::move(element)).second == false) {
-      SCRAM_THROW(DuplicateElementError())
-          << errinfo_element(Id::unique_name(stable_ref), T::kTypeString)
-          << errinfo_container(Id::unique_name(static_cast<Self&>(*this)),
-                               Self::kTypeString);
+        SCRAM_THROW(DuplicateElementError())
+            << errinfo_element(Id::unique_name(stable_ref), T::kTypeString);
+          //<< errinfo_container(Id::unique_name(static_cast<Self&>(*this)), Self::kTypeString);
     }
-    stable_ref.container(static_cast<const Self*>(this));
+    stable_ref.container(static_cast<const Self*>(self));
+  }
+
+  void Add(Pointer element) {
+      Add(std::move(element), static_cast<const Self*>(this));
   }
 
   /// Removes MEF elements from the container.
@@ -510,13 +517,15 @@ class Container {
   /// @throws UndefinedElement  The element cannot be found in the container.
   /// @throws LogicError  The element in the container is not the same object.
   Pointer Remove(T* element) {
-    const std::string& key = [element]() -> decltype(auto) {
-      if constexpr (ById) {
-        return element->id();
-      } else {
-        return element->name();
-      }
-    }();
+    //const std::string& key = [element]() -> decltype(auto) {
+    //  if constexpr (ById) {
+    //    return element->id();
+    //  } else {
+    //    return element->name();
+    //  }
+    //}();
+
+    const std::string& key = element->key();
 
     auto it = table_.find(key);
 
@@ -527,16 +536,15 @@ class Container {
         SCRAM_THROW(LogicError("Duplicate element with different address."));
 
     } catch (Error& err) {
-      err << errinfo_element(Id::unique_name(*element), T::kTypeString)
-          << errinfo_container(Id::unique_name(static_cast<const Self&>(*this)),
-                               Self::kTypeString);
+        err << errinfo_element(Id::unique_name(*element), T::kTypeString);
+          //<< errinfo_container(Id::unique_name(static_cast<const Self&>(*this)), Self::kTypeString);
       throw;
     }
     element->container(nullptr);
     return ext::extract(it, &table_);  // no-throw.
   }
 
- protected:
+ //protected:
   /// @returns The data table with the elements.
   const TableType& data() const { return table_; }
 
@@ -576,61 +584,89 @@ struct container_of {
 
 }  // namespace detail
 
-/// The composition of multiple mef::Containers.
-///
-/// @tparam Ts  Container types.
+
 template <typename... Ts>
-class Composite : public Ts... {
- public:
-  using Ts::Add...;
-  using Ts::Remove...;
+class Composite
+{
+public:
 
-  /// @tparam T  The mef::Element type in the composite container.
-  ///
-  /// @returns The table as an associative range of type T elements.
-  /// @{
-  template <class T>
-  auto table() const {
-    using ContainerType = typename detail::container_of<T, Ts...>::type;
-    return ContainerType::table();
-  }
-  template <class T>
-  auto table() {
-    using ContainerType = typename detail::container_of<T, Ts...>::type;
-    return ContainerType::table();
-  }
-  /// @}
+    template <class T>
+        void Add(T* element)
+    {
+        using ContainerType = typename detail::container_of<T, Ts...>::type;
+        std::get<ContainerType>(containers_).Add(element, this);
+    }
 
-  /// Retrieves an element from the container.
-  ///
-  /// @tparam T  The mef::Element type in the composite container.
-  ///
-  /// @param[in] id  The valid ID/name string of the element.
-  ///
-  /// @returns The reference to the element.
-  ///
-  /// @throws UndefinedElement  The element is not found.
-  /// @{
-  template <class T,
-            class ContainerType = typename detail::container_of<T, Ts...>::type>
-  const T& Get(const typename ContainerType::key_type& id) const {
-    return ContainerType::Get(id);
-  }
-  template <class T,
-            class ContainerType = typename detail::container_of<T, Ts...>::type>
-  T& Get(const typename ContainerType::key_type& id) {
-    return ContainerType::Get(id);
-  }
-  /// @}
+    template <class T>
+        void Add(std::unique_ptr<T> element)
+    {
+        using ContainerType = typename detail::container_of<T, Ts...>::type;
+        std::get<ContainerType>(containers_).Add(std::move(element), this);
+    }
 
- protected:
-  /// @returns The data table with elements of specific type.
-  template <class T>
-  decltype(auto) data() const {
-    using ContainerType = typename detail::container_of<T, Ts...>::type;
-    return ContainerType::data();
-  }
+    template <class T,
+        class ContainerType = typename detail::container_of<T, Ts...>::type>
+        auto Remove(T* element)
+    {
+        return std::get<ContainerType>(containers_).Remove(element);
+    }
+
+    /// @tparam T  The mef::Element type in the composite container.
+    ///
+    /// @returns The table as an associative range of type T elements.
+    /// @{
+    template <class T>
+    auto table() const
+    {
+        using ContainerType = typename detail::container_of<T, Ts...>::type;
+        //return ContainerType::table();
+        return std::get<ContainerType>(containers_).table();
+    }
+    template <class T>
+    auto table()
+    {
+        using ContainerType = typename detail::container_of<T, Ts...>::type;
+        //return ContainerType::table();
+        return std::get<ContainerType>(containers_).table();
+    }
+    /// @}
+
+    /// Retrieves an element from the container.
+    ///
+    /// @tparam T  The mef::Element type in the composite container.
+    ///
+    /// @param[in] id  The valid ID/name string of the element.
+    ///
+    /// @returns The reference to the element.
+    ///
+    /// @throws UndefinedElement  The element is not found.
+    /// @{
+    template <class T,
+        class ContainerType = typename detail::container_of<T, Ts...>::type>
+        const T& Get(const typename ContainerType::key_type& id) const
+        {
+            return std::get<ContainerType>(containers_).Get(id);
+        }
+    template <class T,
+        class ContainerType = typename detail::container_of<T, Ts...>::type>
+        T& Get(const typename ContainerType::key_type& id)
+        {
+            return std::get<ContainerType>(containers_).Get(id);
+        }
+        /// @}
+
+protected:
+    /// @returns The data table with elements of specific type.
+    template <class T>
+    decltype(auto) data() const {
+        using ContainerType = typename detail::container_of<T, Ts...>::type;
+        return std::get<ContainerType>(containers_).data();
+    }
+
+private:
+    std::tuple<Ts...> containers_;
 };
+
 
 /// Convenience alias for a homogeneous composite of containers.
 ///

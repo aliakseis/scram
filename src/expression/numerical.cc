@@ -24,48 +24,6 @@
 
 namespace scram::mef {
 
-/// @cond Doxygen_With_Smart_Using_Declaration
-template <>
-void Div::Validate() const {
-  auto it = Expression::args().begin();
-  for (++it; it != Expression::args().end(); ++it) {
-    const auto& expr = *it;
-    Interval arg_interval = expr->interval();
-    if (expr->value() == 0 || Contains(arg_interval, 0))
-      SCRAM_THROW(DomainError("Division by 0."));
-  }
-}
-
-template <>
-void Mod::Validate() const {
-  assert(args().size() == 2);
-  auto* arg_two = args().back();
-  int arg_value = arg_two->value();
-  if (arg_value == 0)
-    SCRAM_THROW(DomainError("Modulo second operand must not be 0."));
-  Interval interval = arg_two->interval();
-  int high = interval.upper();
-  int low = interval.lower();
-  if (high == 0 || low == 0 || (low < 0 && 0 < high)) {
-    SCRAM_THROW(
-        DomainError("Modulo second operand sample must not contain 0."));
-  }
-}
-
-template <>
-void Pow::Validate() const {
-  assert(args().size() == 2);
-  auto* arg_one = args().front();
-  auto* arg_two = args().back();
-  if (arg_one->value() == 0 && arg_two->value() <= 0)
-    SCRAM_THROW(DomainError("0 to power 0 or less is undefined."));
-  if (Contains(arg_one->interval(), 0) && !IsPositive(arg_two->interval())) {
-    SCRAM_THROW(
-        DomainError("Power expression 'base' sample range contains 0);"
-                    " positive exponent is required."));
-  }
-}
-/// @endcond
 
 Mean::Mean(std::vector<Expression*> args) : ExpressionFormula(std::move(args)) {
   if (Expression::args().size() < 2)

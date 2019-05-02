@@ -57,7 +57,9 @@ class HouseEvent : public Event {
 
   using Event::Event;
 
-  HouseEvent(HouseEvent&&);  ///< For the (N)RVO only (undefined!).
+  HouseEvent(HouseEvent&&) = delete;  ///< For the (N)RVO only (undefined!).
+
+  HouseEvent(std::string s, bool state) : Event(std::move(s)), state_(state) {}
 
   /// Sets the state for House event.
   ///

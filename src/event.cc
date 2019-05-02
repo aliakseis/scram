@@ -32,11 +32,12 @@ namespace scram::mef {
 
 Event::~Event() = default;
 
-HouseEvent HouseEvent::kTrue = []() {
-  HouseEvent house_event("__true__");
-  house_event.state(true);
-  return house_event;
-}();
+//HouseEvent HouseEvent::kTrue = []() {
+//  HouseEvent house_event("__true__");
+//  house_event.state(true);
+//  return house_event;
+//}();
+HouseEvent HouseEvent::kTrue("__true__", true);
 HouseEvent HouseEvent::kFalse("__false__");
 
 void BasicEvent::Validate() const {

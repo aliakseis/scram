@@ -96,7 +96,7 @@ add_library(scram-gui STATIC ${SCRAM_GUI_SRC})
 target_link_libraries(scram-gui
   ${LIBS} scram
   Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Svg Qt5::OpenGL Qt5::PrintSupport Qt5::Concurrent)
-target_compile_options(scram-gui PUBLIC $<$<CONFIG:DEBUG>:${SCRAM_CXX_FLAGS_DEBUG} -Wno-useless-cast>) # TODO: MOC failure.
+target_compile_options(scram-gui PUBLIC $<$<CONFIG:DEBUG>:${SCRAM_CXX_FLAGS_DEBUG}>) # TODO: MOC failure.
 # Prevent implicit QString(const char*), string concat with "+", and other anti-patterns.
 target_compile_definitions(scram-gui PRIVATE
   $<$<CONFIG:DEBUG>:QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII QT_NO_CAST_FROM_BYTEARRAY QT_NO_URL_CAST_FROM_STRING QT_USE_QSTRINGBUILDER>
