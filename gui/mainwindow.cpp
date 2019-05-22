@@ -1586,7 +1586,6 @@ void MainWindow::activateFaultTreeDiagram(mef::FaultTree *faultTree)
     auto *scene = new diagram::DiagramScene(
         m_guiModel->gates().find(topGate)->get(), m_guiModel.get(), view);
     view->setScene(scene);
-    view->setViewport(new QGLWidget(QGLFormat(QGL::SampleBuffers)));
     view->setRenderHints(QPainter::Antialiasing
                          | QPainter::SmoothPixmapTransform);
     view->setAlignment(Qt::AlignTop);
