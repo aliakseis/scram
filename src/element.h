@@ -498,8 +498,8 @@ class Container {
     T& stable_ref = *element;  // The pointer will be moved later.
     if (table_.insert(std::move(element)).second == false) {
         SCRAM_THROW(DuplicateElementError())
-            << errinfo_element(Id::unique_name(stable_ref), T::kTypeString);
-          //<< errinfo_container(Id::unique_name(static_cast<Self&>(*this)), Self::kTypeString);
+            << errinfo_element(Id::unique_name(stable_ref), T::kTypeString)
+            << errinfo_container(Id::unique_name(static_cast<const Self&>(*self)), Self::kTypeString);
     }
     stable_ref.container(static_cast<const Self*>(self));
   }
@@ -619,14 +619,12 @@ public:
     auto table() const
     {
         using ContainerType = typename detail::container_of<T, Ts...>::type;
-        //return ContainerType::table();
         return std::get<ContainerType>(containers_).table();
     }
     template <class T>
     auto table()
     {
         using ContainerType = typename detail::container_of<T, Ts...>::type;
-        //return ContainerType::table();
         return std::get<ContainerType>(containers_).table();
     }
     /// @}
